@@ -13,12 +13,13 @@ That layer used to be the whole product, because talking to a database was hard.
 
 ## What you give up
 
-- **A visual board.** Stages are a table you ask about, not cards you drag.
-- **A phone app.** It runs where Claude Code runs.
+- **A dispatch board.** Runs are a table you ask about, not jobs you drag between trucks.
+- **A driver app.** No GPS proof of service, no photos from the cab. Drivers bring back dockets and notes; the office enters them, or Enterprise DNA builds a driver screen into your version.
+- **A weighbridge connection.** Tonnes come off the docket, typed in, not straight from the scale.
 - **A vendor help desk.** This is open source. Enterprise DNA supports the installed version for businesses that want someone to call.
 
 ## Who this fits
 
-Small teams who already use Claude Code, or who would rather learn to ask than learn another interface. If your team needs a screen to look at all day, keep AMCS Wastedge. If you need the answers more than the screens, this is cheaper, faster and yours.
+Skip bin and collection operators with a few trucks and an office that already runs the day from the dockets. If your drivers need live job screens and your gatehouse needs a scale feed today, keep AMCS Wastedge or have those built. If you need the answers more than the screens, this is cheaper, faster and yours.
 
 Installed and run for you: https://enterprisedna.co/omni/instead-of/wastedge

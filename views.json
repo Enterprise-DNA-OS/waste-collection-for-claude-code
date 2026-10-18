@@ -2,12 +2,69 @@
   {
     "name": "week",
     "title": "This week",
-    "subtitle": "Waste Collection for Claude Code: what needs attention, rendered by npm run view",
+    "subtitle": "Waste Collection for Claude Code: what needs a decision, the bins out and the runs ahead, rendered by npm run view",
     "sections": [
       {
-        "title": "Needs attention",
-        "note": "TODO(author): point this at the industry's attention view (overdue, stuck, quiet).",
-        "sql": "select 'replace me' as item, 'TODO(author)' as why"
+        "title": "Needs a decision",
+        "note": "Worst first. Reportable priority waste moving without its paper outranks everything.",
+        "sql": "select rank, reason, label, who, place, detail from v_attention order by rank, days desc nulls last, label limit 25"
+      },
+      {
+        "title": "Bins out",
+        "note": "Days over is days past what the hire price covers. A road skip shows the last day of its council permit.",
+        "sql": "select ref as hire, bin, bin_type, stream, customer, suburb, days_out, days_over, placement, permit_until, collect_booked_on from v_hires where status = 'out' order by days_out desc"
+      },
+      {
+        "title": "Runs, today and the next two days",
+        "sql": "select ref as run, to_char(run_on, 'Dy DD Mon') as day, vehicle, rego, driver, case when driver_ok then 'ok' else 'NOT COVERED' end as licence, case when rego_ok then 'ok' else 'LAPSED' end as rego_state, jobs from v_runs where run_on between current_date and current_date + 2 and jobs > 0 order by run_on, ref"
+      },
+      {
+        "title": "Missed lifts, last 28 days",
+        "sql": "select j.ref, to_char(j.scheduled_on, 'Dy DD Mon') as day, c.name as customer, j.missed_reason, case when j.followed_up then 'rebooked' else 'NOT REBOOKED' end as state from jobs j join customers c on c.id = j.customer_id where j.status = 'missed' and j.scheduled_on >= current_date - 28 order by j.scheduled_on desc"
+      }
+    ]
+  },
+  {
+    "name": "money",
+    "title": "Money",
+    "subtitle": "Waste Collection for Claude Code: margin after tip fees, prices against tip rates, and what is owed, rendered by npm run view",
+    "sections": [
+      {
+        "title": "Margin after tip fees by customer, last 30 days",
+        "note": "Charged is the hire or lift, tonnes over what the bin includes, days over and contamination. Tip fees off the dockets. Ex GST.",
+        "sql": "select c.name as customer, count(*) as jobs, round(sum(t.tonnes), 2) as tonnes, to_char(sum(t.total_cents) / 100.0, 'FM$999,990') as charged, to_char(sum(t.tip_cents) / 100.0, 'FM$999,990') as tip_fees, round(sum(t.margin_cents) * 100.0 / nullif(sum(t.total_cents), 0), 1) as margin_pct from v_job_totals t join customers c on c.id = t.customer_id where t.done_on >= current_date - 30 group by c.name order by margin_pct"
+      },
+      {
+        "title": "Hire prices against today's tip rates",
+        "sql": "select ref, customer, bin_type, stream, to_char(hire_cents / 100.0, 'FM$9,990.00') as hire, included_tonnes, to_char(tip_cost_cents / 100.0, 'FM$9,990.00') as tip_cost, left_pct, target_pct from v_price_check order by left_pct"
+      },
+      {
+        "title": "Tip rates in force",
+        "sql": "select facility, stream_name as stream, to_char(rate_cents / 100.0, 'FM$9,990.00') as per_tonne, since, to_char(previous_cents / 100.0, 'FM$9,990.00') as was, change_pct from v_tip_rates order by facility, stream"
+      },
+      {
+        "title": "Invoices open",
+        "sql": "select ref, customer, status, issued_on, due_on, to_char(total_cents / 100.0, 'FM$999,990.00') as ex_gst, days_overdue from v_invoices where status in ('draft', 'issued') order by days_overdue desc, ref"
+      },
+      {
+        "title": "Done and not invoiced",
+        "sql": "select customer, count(*) as jobs, to_char(sum(total_cents) / 100.0, 'FM$999,990.00') as ex_gst, min(done_on) as oldest from v_unbilled group by customer order by customer"
+      }
+    ]
+  },
+  {
+    "name": "diversion",
+    "title": "Diversion from landfill",
+    "subtitle": "Waste Collection for Claude Code: tonnes by customer and stream, rendered by npm run view",
+    "sections": [
+      {
+        "title": "By customer and month",
+        "note": "Front lift tonnes are each run's docket shared across its lifts by bins lifted.",
+        "sql": "select customer, to_char(month, 'Mon YYYY') as month, tonnes, coalesce(diverted_tonnes, 0) as diverted, diversion_pct from v_diversion order by month desc, diversion_pct"
+      },
+      {
+        "title": "By stream, last 30 days",
+        "sql": "select st.name as stream, case when st.diverted then 'diverted' else 'landfill' end as goes_to, round(sum(t.tonnes), 2) as tonnes, to_char(sum(t.tip_cents) / 100.0, 'FM$999,990') as tip_fees from v_job_totals t join jobs j on j.id = t.job_id join streams st on st.id = j.stream_id where t.done_on >= current_date - 30 group by st.name, st.diverted order by tonnes desc"
       }
     ]
   }

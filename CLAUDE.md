@@ -22,9 +22,37 @@ Fill this in once. A worker with context knows. A worker without it guesses.
 
 | When the operator asks for... | Use this |
 |---|---|
-| <!-- TODO(author): one row per slash command --> | `/...` |
+| "what needs my attention", "what's wrong this morning" | `/attention` |
+| "what's on tomorrow", "run sheets", "who's driving" | `/today` |
+| "put that job on Priya's truck", "change the driver" | `/runs` |
+| "book a skip for...", "new hire" | `/book` |
+| "the skip went out", "mark that done" | `/deliver` |
+| "swap the bin at..." | `/swap` |
+| "collect the skip at..." | `/collect` |
+| "here's the council permit", "which road skips run out" | `/permit` |
+| "here's the Waste Tracker number" | `/tracker` |
+| "here's the docket", "they tipped 2.3 tonnes" | `/tip` |
+| "the gate was locked", "rebook the lift", "front lift round" | `/lifts` |
+| "what bins are out", "how many 6s in the yard" | `/bins` |
+| "are we making money", "margin after tip" | `/margins` |
+| "do our prices still cover the tip" | `/price-check` |
+| "Southvale is putting its rate up" | `/tip-rates` |
+| "diversion report", "how much went to landfill" | `/diversion` |
+| "pull up Coastline", "who owes us" | `/customer` |
+| "when does the rego run out", "licences" | `/fleet` |
+| "do the invoicing", "bill the month" | `/bill` |
+| "what's overdue", "mark that paid" | `/invoices` |
+| "put them on hold", "release the hold" | `/hold` |
+| "are we compliant", "check the rules" | `/compliance` |
+| "Monday review", "how was the week" | `/weekly-review` |
+| "note that Mark said..." | `/log` |
+| "chase that invoice", "write them about the price" | `/draft` |
+| "bring our Wastedge data across" | `/import` |
+| "export everything" | `/export` |
+| "add a field", "change the margin target" | `/customise` |
+| "a page that shows..." | `/new-view` |
 
-If an ask fits nothing here, run the CLI directly (`npm run <cli> -- --help`) and then propose a new command for it.
+If an ask fits nothing here, run the CLI directly (`node scripts/waste.mjs help`) and then propose a new command for it.
 
 ## Hard rules
 
@@ -32,6 +60,9 @@ If an ask fits nothing here, run the CLI directly (`npm run <cli> -- --help`) an
 - Never delete records without an explicit yes in this session. Prefer marking closed or archived.
 - Never invent a record. If a name is ambiguous, list the candidates and ask.
 - The database is the source of truth. If the answer is not in it, say so.
+- Never invent a tonnage, a docket number, a permit number or a Waste Tracker record. Read it off the docket, permit or record the operator gives you, say it back, then record it.
+- The gates (Waste Tracker, EPA permission, road permit, licence class, rego, credit hold, priced contamination) have no force flag. The fix is the record, never a workaround.
+- Money is ex GST everywhere; GST is added on the tax invoice. Tonnes are net, off the docket.
 
 ## Where things live
 

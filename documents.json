@@ -1,11 +1,36 @@
 [
   {
-    "name": "example",
-    "title": "TODO(author): the first document this industry must produce",
-    "for_each": "select gen_random_uuid() as id, 'Example' as name",
+    "name": "invoice",
+    "title": "Tax invoice",
+    "for_each": "select i.id, i.ref || ' ' || c.name as name from invoices i join customers c on c.id = i.customer_id where i.status in ('draft', 'issued') order by i.ref",
     "file": "name",
     "sections": [
-      { "title": "Details", "sql": "select 'replace me' as item, $1::text as record_id" }
+      { "title": "Invoice", "sql": "select i.ref as invoice, case when i.status = 'draft' then 'DRAFT, not issued' else i.status end as status, coalesce(i.issued_on::text, '') as issued, coalesce(i.due_on::text, '') as due, (select value from settings where key = 'business_name') as from_business from invoices i where i.id = $1" },
+      { "title": "Bill to", "sql": "select c.name, coalesce(c.abn, '') as abn, coalesce(c.contact_name, '') as attention, coalesce(c.email, '') as email from invoices i join customers c on c.id = i.customer_id where i.id = $1" },
+      { "title": "Work", "sql": "select description, to_char(amount_cents / 100.0, 'FM$999,990.00') as amount_ex_gst from invoice_lines where invoice_id = $1 order by description" },
+      { "title": "Total", "sql": "select to_char(sum(amount_cents) / 100.0, 'FM$999,990.00') as ex_gst, to_char(sum(amount_cents) * setting_num('gst_pct', 10) / 10000.0, 'FM$999,990.00') as gst, to_char(sum(amount_cents) * (1 + setting_num('gst_pct', 10) / 100) / 100.0, 'FM$999,990.00') as total_incl_gst from invoice_lines where invoice_id = $1" }
+    ]
+  },
+  {
+    "name": "waste-report",
+    "title": "Waste and diversion report",
+    "for_each": "select distinct c.id, c.name from customers c join v_diversion d on d.customer_id = c.id where c.kind = 'account' order by c.name",
+    "file": "name",
+    "sections": [
+      { "title": "By month", "sql": "select to_char(month, 'Mon YYYY') as month, tonnes, coalesce(diverted_tonnes, 0) as diverted_tonnes, diversion_pct as diverted_pct from v_diversion where customer_id = $1 order by month desc limit 6" },
+      { "title": "By stream, last 90 days", "sql": "select st.name as stream, case when st.diverted then 'Recovered' else 'Landfill' end as destination, count(*) as collections, round(sum(t.tonnes), 2) as tonnes from v_job_totals t join jobs j on j.id = t.job_id join streams st on st.id = j.stream_id where t.customer_id = $1 and t.done_on >= current_date - 90 group by st.name, st.diverted order by tonnes desc" },
+      { "title": "Collections, last 30 days", "sql": "select t.done_on as day, t.ref as job, st.name as stream, t.tonnes from v_job_totals t join jobs j on j.id = t.job_id join streams st on st.id = j.stream_id where t.customer_id = $1 and t.done_on >= current_date - 30 order by t.done_on desc" }
+    ]
+  },
+  {
+    "name": "run-sheet",
+    "title": "Run sheet",
+    "for_each": "select r.id, r.ref || ' ' || v.rego as name from runs r join vehicles v on v.id = r.vehicle_id where r.run_on between current_date and current_date + 1 and exists (select 1 from jobs j where j.run_id = r.id and j.status = 'booked') order by r.ref",
+    "file": "name",
+    "sections": [
+      { "title": "Truck and driver", "sql": "select to_char(run_on, 'Dy DD Mon YYYY') as day, vehicle, rego, coalesce(driver, 'NO DRIVER') as driver, driver_class, needs_class, case when driver_ok and rego_ok then 'ok' else 'CHECK THE PAPER' end as paper from v_runs where run_id = $1" },
+      { "title": "Jobs", "sql": "select j.ref as job, j.kind, c.name as customer, s.address || ', ' || s.suburb as site, coalesce(s.access_notes, '') as access, coalesce(bt.code, sbt.code) as bin, coalesce(sv.qty, 1) as qty, st.name as stream, case when st.rpw and j.kind <> 'delivery' then coalesce('Waste Tracker ' || h.waste_tracker_ref, 'NO WASTE TRACKER RECORD: DO NOT LIFT') when h.placement = 'road' then coalesce('Road permit ' || h.permit_ref || ' to ' || h.permit_until, 'NO ROAD PERMIT') else '' end as paper from jobs j join customers c on c.id = j.customer_id join sites s on s.id = j.site_id join streams st on st.id = j.stream_id left join hires h on h.id = j.hire_id left join bin_types bt on bt.id = h.bin_type_id left join services sv on sv.id = j.service_id left join bin_types sbt on sbt.id = sv.bin_type_id where j.run_id = $1 and j.status = 'booked' order by s.suburb, j.ref" },
+      { "title": "Tip dockets to bring back", "sql": "select 'Every swap and collection, and one per stream for a front lift run: facility, docket number, net tonnes' as note where $1::uuid is not null" }
     ]
   }
 ]
